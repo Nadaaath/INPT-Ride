@@ -5,21 +5,69 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from .models import Reservation
 from .serializers import ReservationSerializer
+from django.db import transaction
 
+from .lock_utils import acquire_reservation_lock, release_reservation_lock
+from .models import Reservation
 
 class ReservationListCreateAPIView(generics.ListCreateAPIView):
     serializer_class = ReservationSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Reservation.objects.filter(user=self.request.user).order_by("-reserved_date", "start_hour")
+        return Reservation.objects.filter(user=self.request.user).order_by("-created_at")
 
-    def perform_create(self, serializer):
-        reservation = serializer.save(user=self.request.user)
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
 
-        vehicle = reservation.vehicle
-        vehicle.status = "reserved"
-        vehicle.save()
+        vehicle = serializer.validated_data["vehicle"]
+        reserved_date = serializer.validated_data["reserved_date"]
+        start_hour = serializer.validated_data["start_hour"]
+        end_hour = serializer.validated_data["end_hour"]
+
+        acquired, lock_key, lock_value = acquire_reservation_lock(
+            vehicle_id=vehicle.id,
+            reserved_date=reserved_date,
+            start_hour=start_hour,
+            end_hour=end_hour,
+        )
+
+        if not acquired:
+            return Response(
+                {
+                    "error": "This vehicle slot is currently being reserved by another user. Please try again."
+                },
+                status=status.HTTP_409_CONFLICT,
+            )
+
+        try:
+            with transaction.atomic():
+                overlapping_exists = Reservation.objects.filter(
+                    vehicle=vehicle,
+                    reserved_date=reserved_date,
+                    status__in=["scheduled", "converted"],
+                    start_hour__lt=end_hour,
+                    end_hour__gt=start_hour,
+                ).exists()
+
+                if overlapping_exists:
+                    return Response(
+                        {"error": "This vehicle is already reserved for the selected time slot."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                reservation = serializer.save(user=request.user)
+
+            output_serializer = self.get_serializer(reservation)
+            headers = self.get_success_headers(output_serializer.data)
+            return Response(
+                output_serializer.data,
+                status=status.HTTP_201_CREATED,
+                headers=headers,
+            )
+        finally:
+            release_reservation_lock(lock_key, lock_value)
 
 from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated

@@ -5,17 +5,12 @@ export async function getVehicles() {
   return response.data;
 }
 
-export async function getActiveRides() {
-  const response = await api.get("/rides/");
-  return response.data;
-}
-
 export async function createVehicle(payload) {
-  const response = await api.post("/vehicles/", payload);
+  const response = await api.post("/vehicles/admin/", payload);
   return response.data;
 }
 
 export async function updateVehicle(vehicleId, payload) {
-  const response = await api.put(`/vehicles/${vehicleId}/`, payload);
+  const response = await api.put(`/vehicles/admin/${vehicleId}/`, payload);
   return response.data;
 }

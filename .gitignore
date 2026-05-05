@@ -67,3 +67,5 @@ build/
 # =========================
 *.tmp
 *.swp
+
+infra/backups/*.sql

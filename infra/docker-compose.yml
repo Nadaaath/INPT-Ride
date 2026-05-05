@@ -3,9 +3,9 @@ services:
     image: postgres:16
     container_name: inpt_ride_postgres
     environment:
-      POSTGRES_DB: inpt_ride_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ${POSTGRES_DB:-inpt_ride_db}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     ports:
       - "5432:5432"
     volumes:
@@ -16,6 +16,21 @@ services:
     container_name: inpt_ride_redis
     ports:
       - "6379:6379"
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: inpt_ride_backend
+    env_file:
+      - ../.env
+    ports:
+      - "8001:8000"
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - ../backend:/app
 
 volumes:
   inpt_ride_postgres_data:

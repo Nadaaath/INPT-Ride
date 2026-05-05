@@ -31,6 +31,21 @@ pipeline {
     }
 }
 
+
+        stage('Python SAST with Bandit') {
+    steps {
+        echo 'Running Bandit Python security scan...'
+        bat 'docker run --rm -v "%CD%:/repo" python:3.12-slim sh -c "pip install bandit && bandit -r /repo/backend -x /repo/backend/venv,/repo/backend/.venv"'
+    }
+}
+
+        stage('Python Dependency Scan with pip-audit') {
+    steps {
+        echo 'Running pip-audit dependency vulnerability scan...'
+        bat 'docker run --rm -v "%CD%:/repo" -w /repo/backend python:3.12-slim sh -c "pip install pip-audit && pip-audit -r requirements.txt"'
+    }
+}
+
         stage('Prepare CI Environment') {
     steps {
         echo 'Creating CI .env file...'

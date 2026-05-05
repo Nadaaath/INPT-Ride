@@ -17,6 +17,20 @@ pipeline {
             }
         }
 
+        stage('Clean Local CI Secrets') {
+    steps {
+        echo 'Removing old local CI environment files before scanning...'
+        bat 'if exist .env del .env'
+    }
+}
+
+       stage('Secret Scan with Gitleaks') {
+    steps {
+        echo 'Scanning repository for leaked secrets...'
+        bat 'docker run --rm -v "%CD%:/repo" zricethezav/gitleaks:latest detect --source="/repo" --no-git --verbose'
+    }
+}
+
         stage('Prepare CI Environment') {
     steps {
         echo 'Creating CI .env file...'

@@ -166,6 +166,28 @@ GOOGLE_WEB_CLIENT_ID=ci-placeholder
                 '''
             }
         }
+
+        stage('Build Admin Dashboard') {
+    steps {
+        echo 'Installing and building React admin dashboard...'
+        bat 'cd admin-dashboard && npm ci'
+        bat 'cd admin-dashboard && npm run build'
+    }
+}
+
+    stage('Build Admin Dashboard Image') {
+    steps {
+        echo 'Building admin dashboard Docker image...'
+        bat 'docker compose -f infra/docker-compose.yml build admin-dashboard'
+    }
+}
+
+    stage('Admin Dashboard Dependency Audit') {
+    steps {
+        echo 'Running npm audit for admin dashboard...'
+        bat 'cd admin-dashboard && npm audit --audit-level=high || exit 0'
+    }
+}
     }
 
     post {

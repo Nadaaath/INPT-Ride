@@ -97,11 +97,12 @@ GOOGLE_WEB_CLIENT_ID=ci-placeholder
         echo 'Scanning backend Docker image with Trivy...'
 
         echo 'Blocking on CRITICAL vulnerabilities...'
-        bat 'docker run --rm -v "%CD%:/repo" aquasec/trivy:latest image --input /repo/backend-image.tar --severity CRITICAL --exit-code 1 --scanners vuln'
+        bat 'docker run --rm -v "%CD%:/repo" -v "%CD%\\.trivy-cache:/root/.cache/trivy" aquasec/trivy:latest image --input /repo/backend-image.tar --severity CRITICAL --exit-code 1 --scanners vuln'
 
         echo 'Reporting HIGH vulnerabilities without blocking...'
-        bat 'docker run --rm -v "%CD%:/repo" aquasec/trivy:latest image --input /repo/backend-image.tar --severity HIGH --exit-code 0 --scanners vuln'
+        bat 'docker run --rm -v "%CD%:/repo" -v "%CD%\\.trivy-cache:/root/.cache/trivy" aquasec/trivy:latest image --input /repo/backend-image.tar --severity HIGH --exit-code 0 --scanners vuln'
     }
+}
 }
 
         stage('Start Backend Stack') {

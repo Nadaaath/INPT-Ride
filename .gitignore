@@ -69,3 +69,5 @@ build/
 *.swp
 
 infra/backups/*.sql
+
+.trivy-cache/

@@ -79,13 +79,6 @@ GOOGLE_WEB_CLIENT_ID=ci-placeholder
         }
 
         stage('Build Backend Image') {
-            steps {
-                echo 'Building Django backend Docker image...'
-                bat 'docker compose -f infra/docker-compose.yml build backend'
-            }
-        }
-
-        stage('Build Backend Image') {
     steps {
         echo 'Building Django backend Docker image...'
         bat 'docker compose -f infra/docker-compose.yml build backend'

@@ -32,5 +32,15 @@ services:
     volumes:
       - ../backend:/app
 
+  admin-dashboard:
+    build:
+      context: ../admin-dashboard
+      dockerfile: Dockerfile
+    container_name: inpt_ride_admin_dashboard
+    ports:
+      - "8002:80"
+    depends_on:
+      - backend
+
 volumes:
   inpt_ride_postgres_data:

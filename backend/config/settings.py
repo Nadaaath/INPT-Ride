@@ -116,11 +116,15 @@ MEDIA_ROOT = BASE_DIR / 'media'
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    "http://localhost:8002",
+    "http://127.0.0.1:8002",
 ]
 
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    "http://localhost:8002",
+    "http://127.0.0.1:8002",
 ]
 
 REDIS_HOST = os.getenv("REDIS_HOST", "localhost")

@@ -17,6 +17,31 @@ pipeline {
             }
         }
 
+        stage('Prepare CI Environment') {
+    steps {
+        echo 'Creating CI .env file...'
+        powershell '''
+@'
+DJANGO_SECRET_KEY=ci-secret-key-for-jenkins
+DJANGO_DEBUG=True
+DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1,backend,10.0.2.2
+
+POSTGRES_DB=inpt_ride_db
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+POSTGRES_HOST=postgres
+POSTGRES_PORT=5432
+
+REDIS_HOST=redis
+REDIS_PORT=6379
+
+GOOGLE_WEB_CLIENT_ID=ci-placeholder
+'@ | Set-Content -Path .env -Encoding UTF8
+        '''
+    }
+}
+
+
         stage('Validate Docker Compose') {
             steps {
                 echo 'Validating Docker Compose configuration...'

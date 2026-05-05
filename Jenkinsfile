@@ -103,7 +103,7 @@ GOOGLE_WEB_CLIENT_ID=ci-placeholder
         bat 'docker run --rm -v "%CD%:/repo" -v "%CD%\\.trivy-cache:/root/.cache/trivy" aquasec/trivy:latest image --input /repo/backend-image.tar --severity HIGH --exit-code 0 --scanners vuln'
     }
 }
-}
+
 
         stage('Start Backend Stack') {
             steps {

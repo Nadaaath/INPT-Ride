@@ -70,12 +70,26 @@ GOOGLE_WEB_CLIENT_ID=ci-placeholder
             }
         }
 
+        stage('Check Missing Migrations') {
+    steps {
+        echo 'Checking for missing Django migrations...'
+        bat 'docker compose -f infra/docker-compose.yml exec -T backend python manage.py makemigrations --check --dry-run'
+    }
+}
+
         stage('Run Migrations') {
             steps {
                 echo 'Running Django migrations...'
                 bat 'docker compose -f infra/docker-compose.yml exec -T backend python manage.py migrate'
             }
         }
+
+        stage('Run Backend Tests') {
+    steps {
+        echo 'Running Django backend tests...'
+        bat 'docker compose -f infra/docker-compose.yml exec -T backend python manage.py test'
+    }
+}
 
         stage('Smoke Test Backend') {
             steps {

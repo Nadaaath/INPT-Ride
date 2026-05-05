@@ -85,10 +85,17 @@ GOOGLE_WEB_CLIENT_ID=ci-placeholder
     }
 }
 
-        stage('Container Image Scan with Trivy') {
+        stage('Export Backend Image') {
     steps {
-        echo 'Scanning backend Docker image with Trivy...'
-        bat 'docker run --rm aquasec/trivy:latest image --severity HIGH,CRITICAL --exit-code 1 infra-backend:latest'
+        echo 'Exporting backend Docker image for Trivy scan...'
+        bat 'docker save infra-backend:latest -o backend-image.tar'
+    }
+}
+
+stage('Container Image Scan with Trivy') {
+    steps {
+        echo 'Scanning exported backend Docker image with Trivy...'
+        bat 'docker run --rm -v "%CD%:/repo" aquasec/trivy:latest image --input /repo/backend-image.tar --severity HIGH,CRITICAL --exit-code 1 --scanners vuln'
     }
 }
 

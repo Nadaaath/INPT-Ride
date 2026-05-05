@@ -85,6 +85,20 @@ GOOGLE_WEB_CLIENT_ID=ci-placeholder
             }
         }
 
+        stage('Build Backend Image') {
+    steps {
+        echo 'Building Django backend Docker image...'
+        bat 'docker compose -f infra/docker-compose.yml build backend'
+    }
+}
+
+        stage('Container Image Scan with Trivy') {
+    steps {
+        echo 'Scanning backend Docker image with Trivy...'
+        bat 'trivy image --severity HIGH,CRITICAL --exit-code 1 infra-backend:latest'
+    }
+}
+
         stage('Start Backend Stack') {
             steps {
                 echo 'Starting PostgreSQL, Redis, and backend...'

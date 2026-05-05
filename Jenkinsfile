@@ -88,7 +88,7 @@ GOOGLE_WEB_CLIENT_ID=ci-placeholder
         stage('Container Image Scan with Trivy') {
     steps {
         echo 'Scanning backend Docker image with Trivy...'
-        bat 'trivy image --severity HIGH,CRITICAL --exit-code 1 infra-backend:latest'
+        bat 'docker run --rm aquasec/trivy:latest image --severity HIGH,CRITICAL --exit-code 1 infra-backend:latest'
     }
 }
 

@@ -1,7 +1,3 @@
-Good. Now let’s document everything properly so the project looks professional.
-
-We’ll create:
-
 ```text
 docs/devsecops-pipeline.md
 ```

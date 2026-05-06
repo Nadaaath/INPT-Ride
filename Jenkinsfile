@@ -270,6 +270,34 @@ stage('Scan Admin Dashboard Image with Trivy') {
     }
 }
 
+    stage('Push Docker Images') {
+    steps {
+        echo 'Pushing Docker images to Docker Hub...'
+
+        withCredentials([usernamePassword(
+            credentialsId: 'dockerhub-credentials',
+            usernameVariable: 'DOCKERHUB_USER',
+            passwordVariable: 'DOCKERHUB_TOKEN'
+        )]) {
+            bat 'echo %DOCKERHUB_TOKEN% | docker login -u %DOCKERHUB_USER% --password-stdin'
+
+            bat 'docker tag infra-backend:latest %DOCKERHUB_USER%/inpt-ride-backend:%BUILD_NUMBER%'
+            bat 'docker tag infra-backend:latest %DOCKERHUB_USER%/inpt-ride-backend:latest'
+
+            bat 'docker tag infra-admin-dashboard:latest %DOCKERHUB_USER%/inpt-ride-admin-dashboard:%BUILD_NUMBER%'
+            bat 'docker tag infra-admin-dashboard:latest %DOCKERHUB_USER%/inpt-ride-admin-dashboard:latest'
+
+            bat 'docker push %DOCKERHUB_USER%/inpt-ride-backend:%BUILD_NUMBER%'
+            bat 'docker push %DOCKERHUB_USER%/inpt-ride-backend:latest'
+
+            bat 'docker push %DOCKERHUB_USER%/inpt-ride-admin-dashboard:%BUILD_NUMBER%'
+            bat 'docker push %DOCKERHUB_USER%/inpt-ride-admin-dashboard:latest'
+
+            bat 'docker logout'
+        }
+    }
+}
+
     }
 
     post {

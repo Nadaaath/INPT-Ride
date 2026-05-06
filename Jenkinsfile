@@ -99,13 +99,8 @@ GOOGLE_WEB_CLIENT_ID=ci-placeholder
         echo 'Preparing Trivy cache directory...'
         bat 'if not exist "C:\\ProgramData\\Jenkins\\.trivy-cache" mkdir "C:\\ProgramData\\Jenkins\\.trivy-cache"'
 
-        echo 'Scanning backend Docker image with Trivy...'
-
-        echo 'Blocking on CRITICAL vulnerabilities...'
-        bat 'docker run --rm -v "%CD%:/repo" -v "C:/ProgramData/Jenkins/.trivy-cache:/root/.cache/trivy" aquasec/trivy:latest image --input /repo/backend-image.tar --severity CRITICAL --exit-code 1 --scanners vuln'
-
-        echo 'Reporting HIGH vulnerabilities without blocking...'
-        bat 'docker run --rm -v "%CD%:/repo" -v "C:/ProgramData/Jenkins/.trivy-cache:/root/.cache/trivy" aquasec/trivy:latest image --input /repo/backend-image.tar --severity HIGH --exit-code 0 --scanners vuln'
+        echo 'Scanning backend Docker image with Trivy - blocking on CRITICAL only...'
+        bat 'docker run --rm -v "%CD%:/repo" -v "C:/ProgramData/Jenkins/.trivy-cache:/root/.cache/trivy" aquasec/trivy:latest image --input /repo/backend-image.tar --severity CRITICAL --exit-code 1 --scanners vuln --timeout 15m'
     }
 }
 

@@ -270,27 +270,12 @@ stage('Scan Admin Dashboard Image with Trivy') {
     }
 }
 
-    stage('Test Docker Hub Login') {
-    steps {
-        withCredentials([usernamePassword(
-            credentialsId: 'dockerhub-credentials',
-            usernameVariable: 'DOCKERHUB_USER',
-            passwordVariable: 'DOCKERHUB_TOKEN'
-        )]) {
-            powershell '''
-$env:DOCKERHUB_TOKEN | docker login -u $env:DOCKERHUB_USER --password-stdin
-'''
-            bat 'docker logout'
-        }
-    }
-}
-
     stage('Push Docker Images') {
     steps {
         echo 'Pushing Docker images to Docker Hub...'
 
         withCredentials([usernamePassword(
-            credentialsId: 'dockerhub-credentials',
+            credentialsId: 'dockerhub-token-v2',
             usernameVariable: 'DOCKERHUB_USER',
             passwordVariable: 'DOCKERHUB_TOKEN'
         )]) {

@@ -21,6 +21,8 @@ pipeline {
     steps {
         echo 'Removing old local CI environment files before scanning...'
         bat 'if exist .env del .env'
+        bat 'if exist .trivy-cache rmdir /S /Q .trivy-cache'
+        bat 'if exist backend-image.tar del backend-image.tar'
     }
 }
 
@@ -94,13 +96,16 @@ GOOGLE_WEB_CLIENT_ID=ci-placeholder
 
         stage('Container Image Scan with Trivy') {
     steps {
+        echo 'Preparing Trivy cache directory...'
+        bat 'if not exist "C:\\ProgramData\\Jenkins\\.trivy-cache" mkdir "C:\\ProgramData\\Jenkins\\.trivy-cache"'
+
         echo 'Scanning backend Docker image with Trivy...'
 
         echo 'Blocking on CRITICAL vulnerabilities...'
-        bat 'docker run --rm -v "%CD%:/repo" -v "%CD%\\.trivy-cache:/root/.cache/trivy" aquasec/trivy:latest image --input /repo/backend-image.tar --severity CRITICAL --exit-code 1 --scanners vuln'
+        bat 'docker run --rm -v "%CD%:/repo" -v "C:/ProgramData/Jenkins/.trivy-cache:/root/.cache/trivy" aquasec/trivy:latest image --input /repo/backend-image.tar --severity CRITICAL --exit-code 1 --scanners vuln'
 
         echo 'Reporting HIGH vulnerabilities without blocking...'
-        bat 'docker run --rm -v "%CD%:/repo" -v "%CD%\\.trivy-cache:/root/.cache/trivy" aquasec/trivy:latest image --input /repo/backend-image.tar --severity HIGH --exit-code 0 --scanners vuln'
+        bat 'docker run --rm -v "%CD%:/repo" -v "C:/ProgramData/Jenkins/.trivy-cache:/root/.cache/trivy" aquasec/trivy:latest image --input /repo/backend-image.tar --severity HIGH --exit-code 0 --scanners vuln'
     }
 }
 
@@ -191,20 +196,83 @@ GOOGLE_WEB_CLIENT_ID=ci-placeholder
         bat 'docker compose -f infra/docker-compose.yml build admin-dashboard'
     }
 }
+
+    stage('Start Full Stack') {
+    steps {
+        echo 'Starting full Docker Compose stack...'
+        bat 'docker compose -f infra/docker-compose.yml up -d postgres redis backend admin-dashboard'
+    }
+}
+
+    stage('Smoke Test Full Stack') {
+    steps {
+        echo 'Testing admin dashboard through Nginx...'
+        powershell '''
+        $maxAttempts = 15
+        $attempt = 1
+
+        while ($attempt -le $maxAttempts) {
+            try {
+                $dashboard = Invoke-WebRequest http://localhost:8002 -UseBasicParsing
+                if ($dashboard.StatusCode -eq 200) {
+                    Write-Host "Admin dashboard is reachable through Nginx."
+                    break
+                }
+            } catch {
+                Write-Host "Admin dashboard not ready yet. Attempt $attempt/$maxAttempts"
+                Start-Sleep -Seconds 5
+            }
+
+            $attempt++
+        }
+
+        if ($attempt -gt $maxAttempts) {
+            Write-Error "Admin dashboard smoke test failed."
+            exit 1
+        }
+        '''
+
+        echo 'Testing API proxy through Nginx...'
+        powershell '''
+        $maxAttempts = 10
+        $attempt = 1
+
+        while ($attempt -le $maxAttempts) {
+            try {
+                $api = Invoke-WebRequest http://localhost:8002/api/vehicles/ -UseBasicParsing
+                if ($api.StatusCode -eq 200) {
+                    Write-Host "Nginx API proxy smoke test passed."
+                    exit 0
+                }
+            } catch {
+                Write-Host "API proxy not ready yet. Attempt $attempt/$maxAttempts"
+                Start-Sleep -Seconds 5
+            }
+
+            $attempt++
+        }
+
+        Write-Error "Nginx API proxy smoke test failed."
+        exit 1
+        '''
+    }
+}
+
     }
 
     post {
-        always {
-            echo 'Stopping Docker Compose stack...'
-            bat 'docker compose -f infra/docker-compose.yml down'
-        }
-
-        success {
-            echo 'Pipeline completed successfully.'
-        }
-
-        failure {
-            echo 'Pipeline failed.'
-        }
+    always {
+        echo 'Stopping Docker Compose stack...'
+        bat 'docker compose -f infra/docker-compose.yml down --remove-orphans'
+        bat 'if exist backend-image.tar del backend-image.tar'
     }
+
+    success {
+        echo 'Pipeline completed successfully.'
+    }
+
+    failure {
+        echo 'Pipeline failed.'
+    }
+}
 }

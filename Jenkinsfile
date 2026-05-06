@@ -280,7 +280,16 @@ stage('Scan Admin Dashboard Image with Trivy') {
             passwordVariable: 'DOCKERHUB_TOKEN'
         )]) {
             powershell '''
-$env:DOCKERHUB_TOKEN | docker login -u $env:DOCKERHUB_USER --password-stdin
+$ErrorActionPreference = "Stop"
+
+Write-Host "Logging in to Docker Hub as $env:DOCKERHUB_USER"
+
+$tempFile = Join-Path $env:TEMP "dockerhub-token-main.txt"
+[System.IO.File]::WriteAllText($tempFile, $env:DOCKERHUB_TOKEN)
+
+cmd /c "type `"$tempFile`" | docker login -u $env:DOCKERHUB_USER --password-stdin"
+
+Remove-Item $tempFile -Force
 '''
 
             bat 'docker tag infra-backend:latest %DOCKERHUB_USER%/inpt-ride-backend:%BUILD_NUMBER%'

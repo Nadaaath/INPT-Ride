@@ -192,6 +192,23 @@ GOOGLE_WEB_CLIENT_ID=ci-placeholder
     }
 }
 
+    stage('Export Admin Dashboard Image') {
+    steps {
+        echo 'Exporting admin dashboard Docker image for Trivy scan...'
+        bat 'docker save infra-admin-dashboard:latest -o admin-dashboard-image.tar'
+    }
+}
+
+stage('Scan Admin Dashboard Image with Trivy') {
+    steps {
+        echo 'Preparing Trivy cache directory...'
+        bat 'if not exist "C:\\ProgramData\\Jenkins\\.trivy-cache" mkdir "C:\\ProgramData\\Jenkins\\.trivy-cache"'
+
+        echo 'Scanning admin dashboard Docker image with Trivy - blocking on CRITICAL only...'
+        bat 'docker run --rm -v "%CD%:/repo" -v "C:/ProgramData/Jenkins/.trivy-cache:/root/.cache/trivy" aquasec/trivy:latest image --input /repo/admin-dashboard-image.tar --severity CRITICAL --exit-code 1 --scanners vuln --timeout 15m'
+    }
+}
+
     stage('Start Full Stack') {
     steps {
         echo 'Starting full Docker Compose stack...'
@@ -260,6 +277,7 @@ GOOGLE_WEB_CLIENT_ID=ci-placeholder
         echo 'Stopping Docker Compose stack...'
         bat 'docker compose -f infra/docker-compose.yml down --remove-orphans'
         bat 'if exist backend-image.tar del backend-image.tar'
+        bat 'if exist admin-dashboard-image.tar del admin-dashboard-image.tar'
     }
 
     success {

@@ -275,7 +275,7 @@ stage('Scan Admin Dashboard Image with Trivy') {
         echo 'Pushing Docker images to Docker Hub...'
 
         withCredentials([usernamePassword(
-            credentialsId: 'dockerhub-token-v2',
+            credentialsId: 'dockerhub-credentials',
             usernameVariable: 'DOCKERHUB_USER',
             passwordVariable: 'DOCKERHUB_TOKEN'
         )]) {

@@ -277,7 +277,9 @@ stage('Scan Admin Dashboard Image with Trivy') {
             usernameVariable: 'DOCKERHUB_USER',
             passwordVariable: 'DOCKERHUB_TOKEN'
         )]) {
-            bat 'echo %DOCKERHUB_TOKEN% | docker login -u %DOCKERHUB_USER% --password-stdin'
+            powershell '''
+$env:DOCKERHUB_TOKEN | docker login -u $env:DOCKERHUB_USER --password-stdin
+'''
             bat 'docker logout'
         }
     }
@@ -292,7 +294,9 @@ stage('Scan Admin Dashboard Image with Trivy') {
             usernameVariable: 'DOCKERHUB_USER',
             passwordVariable: 'DOCKERHUB_TOKEN'
         )]) {
-            bat 'echo %DOCKERHUB_TOKEN% | docker login -u %DOCKERHUB_USER% --password-stdin'
+            powershell '''
+$env:DOCKERHUB_TOKEN | docker login -u $env:DOCKERHUB_USER --password-stdin
+'''
 
             bat 'docker tag infra-backend:latest %DOCKERHUB_USER%/inpt-ride-backend:%BUILD_NUMBER%'
             bat 'docker tag infra-backend:latest %DOCKERHUB_USER%/inpt-ride-backend:latest'

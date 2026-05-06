@@ -292,16 +292,10 @@ cmd /c "type `"$tempFile`" | docker login -u $env:DOCKERHUB_USER --password-stdi
 Remove-Item $tempFile -Force
 '''
 
-            bat 'docker tag infra-backend:latest %DOCKERHUB_USER%/inpt-ride-backend:%BUILD_NUMBER%'
             bat 'docker tag infra-backend:latest %DOCKERHUB_USER%/inpt-ride-backend:latest'
-
-            bat 'docker tag infra-admin-dashboard:latest %DOCKERHUB_USER%/inpt-ride-admin-dashboard:%BUILD_NUMBER%'
             bat 'docker tag infra-admin-dashboard:latest %DOCKERHUB_USER%/inpt-ride-admin-dashboard:latest'
 
-            bat 'docker push %DOCKERHUB_USER%/inpt-ride-backend:%BUILD_NUMBER%'
             bat 'docker push %DOCKERHUB_USER%/inpt-ride-backend:latest'
-
-            bat 'docker push %DOCKERHUB_USER%/inpt-ride-admin-dashboard:%BUILD_NUMBER%'
             bat 'docker push %DOCKERHUB_USER%/inpt-ride-admin-dashboard:latest'
 
             bat 'docker logout'

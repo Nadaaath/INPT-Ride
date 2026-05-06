@@ -1,12 +1,18 @@
+import os
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-change-me-later'
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 
-DEBUG = True
+if not SECRET_KEY:
+    raise RuntimeError("DJANGO_SECRET_KEY environment variable is required")
+DEBUG = os.getenv("DJANGO_DEBUG") == "True"
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = os.getenv(
+    "DJANGO_ALLOWED_HOSTS",
+    "localhost,127.0.0.1,backend,10.0.2.2"
+).split(",")
 
 INSTALLED_APPS = [
     'corsheaders',
@@ -72,13 +78,13 @@ TEMPLATES = [
 WSGI_APPLICATION = 'config.wsgi.application'
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'inpt_ride_db',
-        'USER': 'postgres',
-        'PASSWORD': 'postgres',
-        'HOST': 'localhost',
-        'PORT': '5432',
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": os.getenv("POSTGRES_DB", "inpt_ride_db"),
+        "USER": os.getenv("POSTGRES_USER", "postgres"),
+        "PASSWORD": os.getenv("POSTGRES_PASSWORD", "postgres"),
+        "HOST": os.getenv("POSTGRES_HOST", "localhost"),
+        "PORT": os.getenv("POSTGRES_PORT", "5432"),
     }
 }
 
@@ -110,9 +116,19 @@ MEDIA_ROOT = BASE_DIR / 'media'
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    "http://localhost:8002",
+    "http://127.0.0.1:8002",
 ]
-REDIS_HOST = 'localhost'
-REDIS_PORT = 6379
+
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:8002",
+    "http://127.0.0.1:8002",
+]
+
+REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
+REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
 
 GOOGLE_WEB_CLIENT_ID = "1047469136081-k9i5ei3cdkgn58jseiebu57it68u54t4.apps.googleusercontent.com"
 

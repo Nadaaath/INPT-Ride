@@ -5,6 +5,11 @@ export async function getPricingEntries() {
   return response.data;
 }
 
+export async function createPricingEntry(payload) {
+  const response = await api.post("/billing/admin/", payload);
+  return response.data;
+}
+
 export async function updatePricingEntry(pricingId, payload) {
   const response = await api.put(`/billing/admin/${pricingId}/`, payload);
   return response.data;

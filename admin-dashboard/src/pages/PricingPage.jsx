@@ -1,10 +1,23 @@
 import { useEffect, useState } from "react";
-import { getPricingEntries, updatePricingEntry } from "../api/pricingApi";
+import {
+  createPricingEntry,
+  getPricingEntries,
+  updatePricingEntry,
+} from "../api/pricingApi";
 import PageHeader from "../components/common/PageHeader";
 import LoadingSpinner from "../components/common/LoadingSpinner";
 import EmptyState from "../components/common/EmptyState";
 import DataTable from "../components/common/DataTable";
 import { formatMoney } from "../utils/formatters";
+
+const initialFormData = {
+  vehicle_type: "bike",
+  base_fee: "",
+  hourly_rate: "",
+  late_return_multiplier: "1.30",
+  no_show_fee: "",
+  active: true,
+};
 
 export default function PricingPage() {
   const [pricingEntries, setPricingEntries] = useState([]);
@@ -15,13 +28,7 @@ export default function PricingPage() {
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [editingPricingId, setEditingPricingId] = useState(null);
-
-  const [formData, setFormData] = useState({
-    vehicle_type: "",
-    base_fee: "",
-    hourly_rate: "",
-    is_active: true,
-  });
+  const [formData, setFormData] = useState(initialFormData);
 
   useEffect(() => {
     loadPricingEntries();
@@ -31,7 +38,6 @@ export default function PricingPage() {
     try {
       setLoading(true);
       setError("");
-
       const data = await getPricingEntries();
       setPricingEntries(data);
     } catch (err) {
@@ -43,14 +49,17 @@ export default function PricingPage() {
   }
 
   function resetForm() {
-    setFormData({
-      vehicle_type: "",
-      base_fee: "",
-      hourly_rate: "",
-      is_active: true,
-    });
+    setFormData(initialFormData);
     setEditingPricingId(null);
     setShowForm(false);
+  }
+
+  function openCreateForm() {
+    setError("");
+    setMessage("");
+    setEditingPricingId(null);
+    setFormData(initialFormData);
+    setShowForm(true);
   }
 
   function openEditForm(entry) {
@@ -58,16 +67,25 @@ export default function PricingPage() {
     setMessage("");
     setEditingPricingId(entry.id);
     setFormData({
-      vehicle_type: entry.vehicle_type ?? "",
+      vehicle_type: entry.vehicle_type ?? "bike",
       base_fee:
         entry.base_fee !== null && entry.base_fee !== undefined
           ? String(entry.base_fee)
-          : "0",
+          : "",
       hourly_rate:
         entry.hourly_rate !== null && entry.hourly_rate !== undefined
           ? String(entry.hourly_rate)
-          : "0",
-      is_active: !!entry.is_active,
+          : "",
+      late_return_multiplier:
+        entry.late_return_multiplier !== null &&
+        entry.late_return_multiplier !== undefined
+          ? String(entry.late_return_multiplier)
+          : "1.30",
+      no_show_fee:
+        entry.no_show_fee !== null && entry.no_show_fee !== undefined
+          ? String(entry.no_show_fee)
+          : "",
+      active: !!entry.active,
     });
     setShowForm(true);
   }
@@ -86,13 +104,15 @@ export default function PricingPage() {
     setError("");
     setMessage("");
 
-    if (!editingPricingId) {
-      setError("No pricing entry selected.");
-      return;
-    }
-
     const baseFee = Number(formData.base_fee);
     const hourlyRate = Number(formData.hourly_rate);
+    const lateReturnMultiplier = Number(formData.late_return_multiplier);
+    const noShowFee = Number(formData.no_show_fee);
+
+    if (!formData.vehicle_type) {
+      setError("Vehicle type is required.");
+      return;
+    }
 
     if (Number.isNaN(baseFee) || baseFee < 0) {
       setError("Base fee must be a valid non-negative number.");
@@ -104,6 +124,16 @@ export default function PricingPage() {
       return;
     }
 
+    if (Number.isNaN(lateReturnMultiplier) || lateReturnMultiplier < 1) {
+      setError("Late return multiplier must be at least 1.");
+      return;
+    }
+
+    if (Number.isNaN(noShowFee) || noShowFee < 0) {
+      setError("No-show fee must be a valid non-negative number.");
+      return;
+    }
+
     try {
       setSubmitting(true);
 
@@ -111,22 +141,29 @@ export default function PricingPage() {
         vehicle_type: formData.vehicle_type,
         base_fee: baseFee,
         hourly_rate: hourlyRate,
-        is_active: formData.is_active,
+        late_return_multiplier: lateReturnMultiplier,
+        no_show_fee: noShowFee,
+        active: formData.active,
       };
 
-      await updatePricingEntry(editingPricingId, payload);
+      if (editingPricingId) {
+        await updatePricingEntry(editingPricingId, payload);
+        setMessage("Pricing rule updated successfully.");
+      } else {
+        await createPricingEntry(payload);
+        setMessage("Pricing rule created successfully.");
+      }
 
-      setMessage("Pricing entry updated successfully.");
       resetForm();
       await loadPricingEntries();
     } catch (err) {
-      console.error("Failed to update pricing entry:", err);
+      console.error("Failed to save pricing rule:", err);
 
       const backendMessage =
         err.response?.data?.detail ||
         err.response?.data?.error ||
         JSON.stringify(err.response?.data) ||
-        "Failed to update pricing entry.";
+        "Failed to save pricing rule.";
 
       setError(backendMessage);
     } finally {
@@ -152,7 +189,17 @@ export default function PricingPage() {
       render: (row) => formatMoney(row.hourly_rate),
     },
     {
-      key: "is_active",
+      key: "late_return_multiplier",
+      label: "Late Multiplier",
+      render: (row) => row.late_return_multiplier ?? "-",
+    },
+    {
+      key: "no_show_fee",
+      label: "No-show Fee",
+      render: (row) => formatMoney(row.no_show_fee),
+    },
+    {
+      key: "active",
       label: "Status",
       render: (row) => (
         <span
@@ -160,13 +207,13 @@ export default function PricingPage() {
             display: "inline-block",
             padding: "6px 10px",
             borderRadius: "999px",
-            background: row.is_active ? "#dcfce7" : "#fee2e2",
-            color: row.is_active ? "#166534" : "#b91c1c",
+            background: row.active ? "#dcfce7" : "#fee2e2",
+            color: row.active ? "#166534" : "#b91c1c",
             fontWeight: 600,
             fontSize: "12px",
           }}
         >
-          {row.is_active ? "Active" : "Inactive"}
+          {row.active ? "Active" : "Inactive"}
         </span>
       ),
     },
@@ -174,17 +221,7 @@ export default function PricingPage() {
       key: "actions",
       label: "Actions",
       render: (row) => (
-        <button
-          onClick={() => openEditForm(row)}
-          style={{
-            padding: "8px 12px",
-            border: "none",
-            borderRadius: "8px",
-            background: "#111827",
-            color: "white",
-            cursor: "pointer",
-          }}
-        >
+        <button className="btn btn--dark" onClick={() => openEditForm(row)}>
           Edit
         </button>
       ),
@@ -197,61 +234,22 @@ export default function PricingPage() {
         title="Pricing"
         subtitle="Manage pricing rules used for ride billing."
         action={
-          <button
-            onClick={loadPricingEntries}
-            style={{
-              padding: "10px 14px",
-              border: "none",
-              borderRadius: "10px",
-              background: "#2563eb",
-              color: "white",
-              cursor: "pointer",
-            }}
-          >
-            Refresh
-          </button>
+          <>
+            <button className="btn btn--success" onClick={openCreateForm}>
+              Add Pricing Rule
+            </button>
+            <button className="btn btn--primary" onClick={loadPricingEntries}>
+              Refresh
+            </button>
+          </>
         }
       />
 
-      {error ? (
-        <div
-          style={{
-            marginBottom: "16px",
-            padding: "14px",
-            background: "#fee2e2",
-            color: "#b91c1c",
-            borderRadius: "12px",
-          }}
-        >
-          {error}
-        </div>
-      ) : null}
+      {error ? <div className="alert alert--error">{error}</div> : null}
+      {message ? <div className="alert alert--success">{message}</div> : null}
 
-      {message ? (
-        <div
-          style={{
-            marginBottom: "16px",
-            padding: "14px",
-            background: "#dcfce7",
-            color: "#166534",
-            borderRadius: "12px",
-          }}
-        >
-          {message}
-        </div>
-      ) : null}
-
-      {showForm && (
-        <div
-          style={{
-            background: "white",
-            borderRadius: "16px",
-            padding: "24px",
-            marginBottom: "20px",
-            boxShadow: "0 4px 16px rgba(0,0,0,0.04)",
-            maxWidth: "760px",
-          }}
-        >
+      {showForm ? (
+        <div className="form-card" style={{ marginBottom: "20px" }}>
           <div
             style={{
               display: "flex",
@@ -260,85 +258,80 @@ export default function PricingPage() {
               marginBottom: "18px",
             }}
           >
-            <h3 style={{ margin: 0 }}>Edit Pricing Entry</h3>
+            <h3 style={{ margin: 0 }}>
+              {editingPricingId ? "Edit Pricing Rule" : "Create Pricing Rule"}
+            </h3>
 
-            <button
-              onClick={resetForm}
-              style={{
-                padding: "8px 12px",
-                border: "1px solid #d1d5db",
-                borderRadius: "8px",
-                background: "white",
-                cursor: "pointer",
-              }}
-            >
+            <button className="btn btn--secondary" onClick={resetForm}>
               Cancel
             </button>
           </div>
 
           <form onSubmit={handleSubmit}>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                gap: "16px",
-                marginBottom: "16px",
-              }}
-            >
+            <div className="form-grid" style={{ marginBottom: "16px" }}>
               <div>
                 <label>Vehicle Type</label>
-                <input
+                <select
+                  className="select"
+                  name="vehicle_type"
                   value={formData.vehicle_type}
-                  disabled
-                  style={{
-                    width: "100%",
-                    marginTop: "6px",
-                    padding: "12px",
-                    borderRadius: "8px",
-                    border: "1px solid #d1d5db",
-                    background: "#f9fafb",
-                    boxSizing: "border-box",
-                  }}
-                />
+                  onChange={handleChange}
+                  disabled={!!editingPricingId}
+                >
+                  <option value="bike">Bike</option>
+                  <option value="scooter">Scooter</option>
+                </select>
               </div>
 
               <div>
                 <label>Base Fee</label>
                 <input
+                  className="input"
                   type="number"
                   min="0"
                   step="0.01"
                   name="base_fee"
                   value={formData.base_fee}
                   onChange={handleChange}
-                  style={{
-                    width: "100%",
-                    marginTop: "6px",
-                    padding: "12px",
-                    borderRadius: "8px",
-                    border: "1px solid #d1d5db",
-                    boxSizing: "border-box",
-                  }}
                 />
               </div>
 
               <div>
                 <label>Hourly Rate</label>
                 <input
+                  className="input"
                   type="number"
                   min="0"
                   step="0.01"
                   name="hourly_rate"
                   value={formData.hourly_rate}
                   onChange={handleChange}
-                  style={{
-                    width: "100%",
-                    marginTop: "6px",
-                    padding: "12px",
-                    borderRadius: "8px",
-                    border: "1px solid #d1d5db",
-                    boxSizing: "border-box",
-                  }}
+                />
+              </div>
+
+              <div>
+                <label>Late Return Multiplier</label>
+                <input
+                  className="input"
+                  type="number"
+                  min="1"
+                  step="0.01"
+                  name="late_return_multiplier"
+                  value={formData.late_return_multiplier}
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div>
+                <label>No-show Fee</label>
+                <input
+                  className="input"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  name="no_show_fee"
+                  value={formData.no_show_fee}
+                  onChange={handleChange}
                 />
               </div>
             </div>
@@ -353,32 +346,27 @@ export default function PricingPage() {
             >
               <input
                 type="checkbox"
-                name="is_active"
-                checked={formData.is_active}
+                name="active"
+                checked={formData.active}
                 onChange={handleChange}
               />
               Active
             </label>
 
             <div>
-              <button
-                type="submit"
-                disabled={submitting}
-                style={{
-                  padding: "12px 16px",
-                  border: "none",
-                  borderRadius: "10px",
-                  background: "#111827",
-                  color: "white",
-                  cursor: "pointer",
-                }}
-              >
-                {submitting ? "Updating..." : "Update Pricing"}
+              <button className="btn btn--dark" type="submit" disabled={submitting}>
+                {submitting
+                  ? editingPricingId
+                    ? "Updating..."
+                    : "Creating..."
+                  : editingPricingId
+                  ? "Update Pricing Rule"
+                  : "Create Pricing Rule"}
               </button>
             </div>
           </form>
         </div>
-      )}
+      ) : null}
 
       {loading ? (
         <LoadingSpinner label="Loading pricing entries..." />

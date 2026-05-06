@@ -67,3 +67,7 @@ build/
 # =========================
 *.tmp
 *.swp
+
+infra/backups/*.sql
+
+.trivy-cache/

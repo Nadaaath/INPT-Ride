@@ -1,21 +1,25 @@
+from django.db import transaction
 from django.utils import timezone
+
 from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .models import Reservation
-from .serializers import ReservationSerializer
-from django.db import transaction
 
 from .lock_utils import acquire_reservation_lock, release_reservation_lock
 from .models import Reservation
+from .serializers import ReservationSerializer
+
 
 class ReservationListCreateAPIView(generics.ListCreateAPIView):
     serializer_class = ReservationSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Reservation.objects.filter(user=self.request.user).order_by("-created_at")
+        return Reservation.objects.filter(user=self.request.user).order_by(
+            "-reserved_date",
+            "start_hour",
+        )
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -46,14 +50,16 @@ class ReservationListCreateAPIView(generics.ListCreateAPIView):
                 overlapping_exists = Reservation.objects.filter(
                     vehicle=vehicle,
                     reserved_date=reserved_date,
-                    status__in=["scheduled", "converted"],
+                    status__in=["scheduled", "converted", "partially_used"],
                     start_hour__lt=end_hour,
                     end_hour__gt=start_hour,
                 ).exists()
 
                 if overlapping_exists:
                     return Response(
-                        {"error": "This vehicle is already reserved for the selected time slot."},
+                        {
+                            "error": "This vehicle is already reserved for the selected time slot."
+                        },
                         status=status.HTTP_400_BAD_REQUEST,
                     )
 
@@ -61,33 +67,15 @@ class ReservationListCreateAPIView(generics.ListCreateAPIView):
 
             output_serializer = self.get_serializer(reservation)
             headers = self.get_success_headers(output_serializer.data)
+
             return Response(
                 output_serializer.data,
                 status=status.HTTP_201_CREATED,
                 headers=headers,
             )
+
         finally:
             release_reservation_lock(lock_key, lock_value)
-
-from rest_framework import generics
-from rest_framework.permissions import IsAuthenticated
-
-from .models import Reservation
-from .serializers import ReservationSerializer
-
-
-class ReservationListCreateAPIView(generics.ListCreateAPIView):
-    serializer_class = ReservationSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        return Reservation.objects.filter(user=self.request.user).order_by(
-            "-reserved_date",
-            "start_hour",
-        )
-
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
 
 
 class ReservationDetailAPIView(generics.RetrieveAPIView):
@@ -96,6 +84,7 @@ class ReservationDetailAPIView(generics.RetrieveAPIView):
 
     def get_queryset(self):
         return Reservation.objects.filter(user=self.request.user)
+
 
 class ReservationCancelAPIView(generics.UpdateAPIView):
     serializer_class = ReservationSerializer
@@ -119,6 +108,8 @@ class ReservationCancelAPIView(generics.UpdateAPIView):
 
         serializer = self.get_serializer(reservation)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
 class AdminCancelReservationAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -139,9 +130,7 @@ class AdminCancelReservationAPIView(APIView):
 
         if reservation.status != "scheduled":
             return Response(
-                {
-                    "error": "Only scheduled reservations can be cancelled."
-                },
+                {"error": "Only scheduled reservations can be cancelled."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

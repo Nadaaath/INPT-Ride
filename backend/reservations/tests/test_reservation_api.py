@@ -18,7 +18,6 @@ class ReservationListCreateAPITest(TestCase):
         self.user = User.objects.create_user(
             username="student_api",
             email="student_api@inptride.com",
-            password="TestPass123!",
         )
 
         self.vehicle = Vehicle.objects.create(

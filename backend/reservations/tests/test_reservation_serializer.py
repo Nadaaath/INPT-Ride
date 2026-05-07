@@ -20,7 +20,6 @@ class ReservationSerializerTest(TestCase):
         self.user = User.objects.create_user(
             username="student1",
             email="student1@inptride.com",
-            password="TestPass123!",
         )
 
         self.vehicle = Vehicle.objects.create(

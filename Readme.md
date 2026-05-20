@@ -987,9 +987,6 @@ http://10.0.2.2:8001/api/
 
 ![Docker Hub Backend Image](docs/screenshots/devops/dockerhub-backend-image.png)
 
-#### Docker Hub Admin Dashboard Image
-
-![Docker Hub Admin Dashboard Image](docs/screenshots/devops/dockerhub-admin-dashboard-image.png)
 
 ---
 

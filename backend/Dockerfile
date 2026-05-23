@@ -12,8 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY requirements.txt .
 
-RUN pip install --upgrade pip \
-    && pip wheel --no-cache-dir --only-binary :all: --wheel-dir /wheels -r requirements.txt
+RUN pip wheel --no-cache-dir --only-binary :all: --wheel-dir /wheels -r requirements.txt
 
 FROM python:3.12-slim
 

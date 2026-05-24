@@ -1,0 +1,112 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: inpt-ride
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend
+          image: nadaaath/inpt-ride-backend:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+          env:
+            - name: DJANGO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: inpt-ride-secret
+                  key: DJANGO_SECRET_KEY
+
+            - name: DJANGO_DEBUG
+              valueFrom:
+                configMapKeyRef:
+                  name: inpt-ride-config
+                  key: DJANGO_DEBUG
+
+            - name: DJANGO_ALLOWED_HOSTS
+              valueFrom:
+                configMapKeyRef:
+                  name: inpt-ride-config
+                  key: DJANGO_ALLOWED_HOSTS
+
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: inpt-ride-config
+                  key: POSTGRES_DB
+
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: inpt-ride-secret
+                  key: POSTGRES_USER
+
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: inpt-ride-secret
+                  key: POSTGRES_PASSWORD
+
+            - name: POSTGRES_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: inpt-ride-config
+                  key: POSTGRES_HOST
+
+            - name: POSTGRES_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: inpt-ride-config
+                  key: POSTGRES_PORT
+
+            - name: REDIS_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: inpt-ride-config
+                  key: REDIS_HOST
+
+            - name: REDIS_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: inpt-ride-config
+                  key: REDIS_PORT
+
+            - name: GOOGLE_WEB_CLIENT_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: inpt-ride-config
+                  key: GOOGLE_WEB_CLIENT_ID
+
+          readinessProbe:
+            tcpSocket:
+              port: 8000
+            initialDelaySeconds: 25
+            periodSeconds: 10
+
+          livenessProbe:
+            tcpSocket:
+              port: 8000
+            initialDelaySeconds: 45
+            periodSeconds: 20
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: inpt-ride
+spec:
+  selector:
+    app: backend
+  ports:
+    - port: 8000
+      targetPort: 8000

@@ -5,7 +5,7 @@ metadata:
   namespace: inpt-ride
 data:
   DJANGO_DEBUG: "False"
-  DJANGO_ALLOWED_HOSTS: "localhost,127.0.0.1,backend,inpt-ride-backend"
+  DJANGO_ALLOWED_HOSTS: "localhost,127.0.0.1,backend,inpt-ride-backend,inpt-ride.local"
 
   POSTGRES_DB: "inpt_ride_db"
   POSTGRES_HOST: "postgres"

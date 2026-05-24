@@ -87,16 +87,26 @@ spec:
                   key: GOOGLE_WEB_CLIENT_ID
 
           readinessProbe:
-            tcpSocket:
+            httpGet:
+              path: /api/health/
               port: 8000
-            initialDelaySeconds: 25
+              httpHeaders:
+                - name: Host
+                  value: backend
+            initialDelaySeconds: 30
             periodSeconds: 10
+            failureThreshold: 6
 
           livenessProbe:
-            tcpSocket:
+            httpGet:
+              path: /api/health/
               port: 8000
-            initialDelaySeconds: 45
+              httpHeaders:
+                - name: Host
+                  value: backend
+            initialDelaySeconds: 60
             periodSeconds: 20
+            failureThreshold: 3
 
 ---
 apiVersion: v1

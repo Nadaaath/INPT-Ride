@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     'wallet',
     'notifications',
     'audit',
+    "health",
 ]
 
 REST_FRAMEWORK = {

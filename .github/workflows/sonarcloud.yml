@@ -79,8 +79,8 @@ jobs:
       - name: Run backend tests with coverage
         working-directory: backend
         run: |
-          coverage run manage.py test vehicles billing reservations
-          coverage xml -o coverage.xml
+              coverage run manage.py test vehicles billing reservations health          
+              coverage xml -o coverage.xml
 
       - name: Run SonarCloud Scan with Quality Gate
         uses: SonarSource/sonarqube-scan-action@v6

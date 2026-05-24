@@ -3,6 +3,9 @@ kind: Job
 metadata:
   name: backend-migrate
   namespace: inpt-ride
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
 spec:
   backoffLimit: 3
   template:
